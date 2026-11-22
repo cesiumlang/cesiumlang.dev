@@ -20,6 +20,11 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+# The Zig that builds the site, set by hand: keep it as in the deploy.yml of
+# cesiumlang/cesiumlang.org.
+env:
+  ZIG_VERSION: 0.17.1
+
 defaults:
   run:
     shell: bash
@@ -49,17 +54,9 @@ jobs:
           fetch-depth: 0 # the page dates come from git history
           submodules: true
 
-      # The compiler, for the documentation generated from its source, and
-      # for the devkit with the Zig that builds the site.
-      - uses: actions/checkout@v7
+      - uses: randyos-org/setup-zig@node24 # v2.2.1 on Node.js 24, until upstream releases it
         with:
-          repository: cesiumlang/cesium
-          ref: dev
-          path: site/cesium-src
-
-      - name: Fetch the devkit
-        working-directory: site
-        run: bash cesium-src/tools/fetch-devkit.sh
+          version: ${{ env.ZIG_VERSION }}
 
       # Zine is built from source: keep what Zig built
       - uses: actions/cache@v4
@@ -71,7 +68,7 @@ jobs:
 
       - name: Build the site
         working-directory: site
-        run: cesium-src/.devkit/zig/zig build
+        run: zig build
 
       - name: Files for AI models
         working-directory: site
