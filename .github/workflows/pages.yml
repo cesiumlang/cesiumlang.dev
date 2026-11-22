@@ -67,6 +67,16 @@ jobs:
           npm run install-deps
           npm run build:ci
 
+      # llms.txt, a Markdown version of each page and the Cesium skill
+      # (cesiumlang/cesiumlang.org#25); older commits of the site lack the tool
+      - name: Files for AI models
+        if: hashFiles('site/build.zig') != ''
+        working-directory: site
+        run: |
+          bash cesium-src/tools/fetch-devkit.sh
+          cesium-src/.devkit/zig/zig build
+          zig-out/bin/cesium-site-ai --out quartz_repo/public --host "$CESIUM_SITE_HOST"
+
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site/quartz_repo/public
