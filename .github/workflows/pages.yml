@@ -1,0 +1,84 @@
+# Builds cesiumlang/cesiumlang.org at the commit named in source.txt and
+# publishes it with GitHub Pages at cesiumlang.dev. A commit to source.txt is
+# made by the Dev site workflow of cesiumlang.org (the secret
+# MIRROR_DEPLOY_KEY there is a deploy key of this repository); it can also be
+# started by hand (Actions > Development site > Run workflow).
+name: Development site
+
+on:
+  push:
+    branches: [main]
+    paths: [source.txt, .github/workflows/pages.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: Build the site
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      # the time zone of the dates Quartz writes on the pages
+      TZ: America/Chicago
+      # the host the site writes into its feeds and sitemap
+      CESIUM_SITE_HOST: cesiumlang.dev
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read the commit to build
+        id: source
+        run: echo "sha=$(head -n 1 source.txt)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
+        with:
+          repository: cesiumlang/cesiumlang.org
+          ref: ${{ steps.source.outputs.sha }}
+          path: site
+          fetch-depth: 0 # the page dates come from git history
+          submodules: true
+
+      # The compiler, for the documentation generated from its source.
+      - uses: actions/checkout@v7
+        with:
+          repository: cesiumlang/cesium
+          ref: dev
+          path: site/cesium-src
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: site/.node-version
+
+      - name: Build the site
+        working-directory: site
+        run: |
+          npm install
+          npm run install-deps
+          npm run build:ci
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site/quartz_repo/public
+
+  deploy:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
