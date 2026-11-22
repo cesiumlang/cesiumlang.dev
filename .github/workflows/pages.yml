@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      # the time zone of the dates Quartz writes on the pages
+      # the time zone of the dates on the pages
       TZ: America/Chicago
       # the host the site writes into its feeds and sitemap
       CESIUM_SITE_HOST: cesiumlang.dev
@@ -49,37 +49,37 @@ jobs:
           fetch-depth: 0 # the page dates come from git history
           submodules: true
 
-      # The compiler, for the documentation generated from its source.
+      # The compiler, for the documentation generated from its source, and
+      # for the devkit with the Zig that builds the site.
       - uses: actions/checkout@v7
         with:
           repository: cesiumlang/cesium
           ref: dev
           path: site/cesium-src
 
-      - uses: actions/setup-node@v7
+      - name: Fetch the devkit
+        working-directory: site
+        run: bash cesium-src/tools/fetch-devkit.sh
+
+      # Zine is built from source: keep what Zig built
+      - uses: actions/cache@v4
         with:
-          node-version-file: site/.node-version
+          path: |
+            ~/.cache/zig
+            site/.zig-cache
+          key: zig-${{ runner.os }}-${{ hashFiles('site/build.zig.zon', 'site/grammar/build.zig.zon') }}
 
       - name: Build the site
         working-directory: site
-        run: |
-          npm install
-          npm run install-deps
-          npm run build:ci
+        run: cesium-src/.devkit/zig/zig build
 
-      # llms.txt, a Markdown version of each page and the Cesium skill
-      # (cesiumlang/cesiumlang.org#25); older commits of the site lack the tool
       - name: Files for AI models
-        if: hashFiles('site/build.zig') != ''
         working-directory: site
-        run: |
-          bash cesium-src/tools/fetch-devkit.sh
-          cesium-src/.devkit/zig/zig build
-          zig-out/bin/cesium-site-ai --out quartz_repo/public --host "$CESIUM_SITE_HOST"
+        run: zig-out/bin/cesium-site-ai --out zig-out/public --host "$CESIUM_SITE_HOST"
 
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: site/quartz_repo/public
+          path: site/zig-out/public
 
   deploy:
     name: Publish
