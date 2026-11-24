@@ -2,7 +2,8 @@
 # publishes it with GitHub Pages at cesiumlang.dev. A commit to source.txt is
 # made by the Dev site workflow of cesiumlang.org (the secret
 # MIRROR_DEPLOY_KEY there is a deploy key of this repository); it can also be
-# started by hand (Actions > Development site > Run workflow).
+# started by hand (Actions > Development site > Run workflow), and by a push to
+# dev of cesiumlang/cesium that changes its specification (its site.yml).
 name: Development site
 
 on:
@@ -65,6 +66,18 @@ jobs:
             ~/.cache/zig
             site/.zig-cache
           key: zig-${{ runner.os }}-${{ hashFiles('site/build.zig.zon', 'site/grammar/build.zig.zon') }}
+
+      # the specification and the proposals: Skein's rendering of cesiumlang/cesium,
+      # its dev, which a push to it starts this for (cesiumlang/cesium#106)
+      - uses: actions/checkout@v7
+        with:
+          repository: cesiumlang/cesium
+          ref: dev
+          path: site/cesium-src
+
+      - name: The specification, from cesium
+        working-directory: site
+        run: bash tools/take-spec.sh cesium-src
 
       - name: Build the site
         working-directory: site
