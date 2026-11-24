@@ -85,7 +85,7 @@ jobs:
 
       - name: Files for AI models
         working-directory: site
-        run: zig-out/bin/cesium-site-ai --out zig-out/public --host "$CESIUM_SITE_HOST"
+        run: zig-out/bin/cesium-site-ai --out zig-out/public --host "$CESIUM_SITE_HOST" --strict
 
       - uses: actions/upload-pages-artifact@v5
         with:
