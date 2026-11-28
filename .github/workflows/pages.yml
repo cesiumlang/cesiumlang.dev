@@ -74,6 +74,8 @@ jobs:
           repository: cesiumlang/cesium
           ref: dev
           path: site/cesium-src
+          # its tags: the releases the edition selector lists (cesiumlang/cesiumlang.org#43)
+          fetch-depth: 0
 
       - name: The specification, from cesium
         working-directory: site
